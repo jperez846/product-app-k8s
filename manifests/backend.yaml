@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: jesup19286/product-app-backend:test  # Will be updated by Jenkins
+          image: jesup19286/product-app-backend:latest  # Will be updated by Jenkins
           imagePullPolicy: Always
           ports:
             - containerPort: 8080

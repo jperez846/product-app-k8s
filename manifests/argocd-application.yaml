@@ -1,36 +1,48 @@
-apiVersion: v1
-kind: Namespace
+apiVersion: argoproj.io/v1alpha1
+kind: Application
 metadata:
   name: product-app
-  labels:
-    name: product-app
-    managed-by: argocd
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: product-app-ingress
-  namespace: product-app
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  namespace: argocd
+  # Finalizer ensures cascade deletion
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
-  ingressClassName: nginx
-  rules:
-    - host: product-app.local  # For local testing, add to /etc/hosts
-      http:
-        paths:
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: backend
-                port:
-                  number: 8080
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: frontend
-                port:
-                  number: 80
+  # Source repository configuration
+  source:
+    repoURL: https://github.com/jperez846/product-app-k8s.git  # Update this!
+    targetRevision: main
+    path: manifests  # Path to Kubernetes manifests in the repo
+
+  # Destination cluster
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: product-app
+
+  # Sync policy
+  syncPolicy:
+    # Automated sync
+    automated:
+      prune: true       # Delete resources that are no longer in Git
+      selfHeal: true    # Automatically sync when cluster state drifts
+      allowEmpty: false # Don't delete all resources if repo is empty
+
+    # Sync options
+    syncOptions:
+      - CreateNamespace=true  # Auto-create namespace if it doesn't exist
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+
+    # Retry policy for failed syncs
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Ignore differences (optional)
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas  # Ignore replica count differences (for HPA)

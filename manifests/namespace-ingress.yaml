@@ -12,7 +12,8 @@ metadata:
   name: product-app-ingress
   namespace: product-app
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /api/$2
+    #nginx.ingress.kubernetes.io/rewrite-target: /api/$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
   ingressClassName: nginx
@@ -20,15 +21,15 @@ spec:
     - host: product-app.local  # For local testing, add to /etc/hosts
       http:
         paths:
-          - path: /api(/|$)(.*)
-            pathType: ImplementationSpecific
+          - path: /api
+            pathType: Prefix
             backend:
               service:
                 name: backend
                 port:
                   number: 8080
-          - path: /()(.*)
-            pathType: ImplementationSpecific
+          - path: /
+            pathType: Prefix
             backend:
               service:
                 name: frontend
